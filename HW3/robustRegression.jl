@@ -36,8 +36,26 @@ function robustRegression(X,y)
 end
 
 function robustRegressionObj(w,X,y)
+
+	(n, d) = size(X)
 	f = 0
 	g = zeros(size(w))
+
+	# Forward propagation of Huber loss
+	for i in 1:n
+		# Compute the residual
+		ri = w' * X[i, :] .- y[i]
+		ri = ri[1]
+
+		if abs(ri) <= 1
+			f += 0.5*ri^2
+			g += ri .* X[i, :] 
+		else
+			f += abs(ri) - 0.5
+			g += sign.(ri) .* X[i, :]
+		end
+	end
+
 	return (f,g)
 end
 

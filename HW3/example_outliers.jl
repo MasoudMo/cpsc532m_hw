@@ -8,7 +8,10 @@ data = load("outliersData.jld")
 
 # Fit a least squares model
 include("leastSquares.jl")
-model = leastSquares(X,y)
+v = zeros(500)
+v[1:400] .= 1
+v[400:500] .= 0.1
+model = weightedLeastSquares(X,y,v)
 
 # Evaluate training error
 yhat = model.predict(X)
