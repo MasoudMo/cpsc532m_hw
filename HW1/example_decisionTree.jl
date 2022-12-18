@@ -1,12 +1,14 @@
 # Load X and y variable
 using JLD
+using Printf
+
 X = load("citiesSmall.jld","X")
 y = load("citiesSmall.jld","y")
 n = size(X,1)
 
 # Fit a decision tree and compute error
 include("decisionTree.jl")
-depth = 2
+depth = 3
 model = decisionTree(X,y,depth)
 
 # Evaluate training error

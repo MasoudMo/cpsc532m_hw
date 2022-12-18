@@ -27,7 +27,7 @@ trainError = sum(yhat .!= y)/n
 
 # Fit decision stump classifier that uses equalities
 include("decisionStump.jl")
-model = decisionStumpEquality(X,y)
+model = decisionStump(X,y)
 
 # Evaluate training error
 yhat = model.predict(X)
@@ -37,4 +37,3 @@ trainError = sum(yhat .!= y)/n
 # Plot classifier
 include("plot2Dclassifier.jl")
 plot2Dclassifier(X,y,model)
-

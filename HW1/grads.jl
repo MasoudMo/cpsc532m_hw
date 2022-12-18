@@ -21,7 +21,7 @@ function grad1(x)
 	n = length(x);
 	g = zeros(n);
 	for i in 1:n
-		# Put gradient code here
+		g[i] += x[i] - i
 	end
 	return g
 end
@@ -33,7 +33,11 @@ func2(x) = dot(x,1:length(x))
 function grad2(x)
 	n = length(x);
 	g = zeros(n);
-	# Put gradient code here
+
+	for i in 1:n
+		g[i] = i
+	end
+
 	return g
 end
 
@@ -41,7 +45,11 @@ end
 func3(x) = sum(max.(x,0).^2)
 
 function grad3(x)
-	# Put gradient code here	
+	n = length(x);
+	g = zeros(n);
+	g[x .<= 0] .= 0
+	g[x .> 0] = 2 * x[x .> 0]
+	return g
 end
 
 ### A function to approximate the derivative numerically
@@ -57,3 +65,4 @@ function numGrad(func,x)
 	end
 	return g
 end
+
