@@ -18,6 +18,12 @@ function naiveBayes(X,y)
   # We will store p(x(i,j) = 1 | y(i) = c) in p_xy(1,j,c)
   # We will store p(x(i,j) = 0 | y(i) = c) in p_xy(2,j,c)
   p_xy = (1/2)ones(2,d,k)
+  for j in 1:d
+    for c in 1:k
+        p_xy[1, j, c] = sum(X[y.==c,j].==1)/sum(y.==c)
+        p_xy[2, j, c] = sum(X[y.==c,j].==0)/sum(y.==c)
+    end
+  end
 
   function predict(Xhat)
     (t,d) = size(Xhat)

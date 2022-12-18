@@ -11,7 +11,7 @@ ytest = load(fileName,"ytest")
 
 # Fit a decision tree classifier
 include("decisionTree_infoGain.jl")
-depth = 5
+depth = Inf
 model = decisionTree_infoGain(X,y,depth)
 
 # Evaluate training error
@@ -26,7 +26,7 @@ testError = mean(yhat .!= ytest)
 
 # Fit a random tree classifier
 include("randomTree.jl")
-depth = 5
+depth = Inf
 model = randomTree(X,y,depth)
 
 # Evaluate training error

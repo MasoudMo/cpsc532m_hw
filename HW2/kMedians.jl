@@ -1,9 +1,10 @@
 using Printf
 using Statistics
 using Random
+using Distances
 include("misc.jl")
 include("clustering2Dplot.jl")
-include("kMeansError.jl")
+include("kMeansL1Error.jl")
 
 mutable struct PartitionModel
 	predict # Function for clustering new points
@@ -11,12 +12,12 @@ mutable struct PartitionModel
 	W # Prototype points
 end
 
-function kMeans(X,k;doPlot=false)
-# K-means clustering
+function kMedians(X,k;doPlot=false)
+# K-medians clustering
 
 (n,d) = size(X)
 
-# Choos random points to initialize means
+# Choos random points to initialize medians
 W = zeros(k,d)
 perm = randperm(n)
 for c = 1:k
@@ -28,14 +29,14 @@ y = zeros(Int64, n)
 changes = n
 while changes != 0
 
-	# Compute (squared) Euclidean distance between each point and each mean
-	D = distancesSquared(X,W)
+	# Compute L1 distance between each point and each mean
+	D = pairwise(Cityblock(), X, W, dims=1)
 
 	# Degenerate clusters will distance NaN, change to Inf
 	# (since Julia thinks NaN is smaller than all other numbers)
 	D[findall(isnan.(D))] .= Inf
 
-	# Assign each data point to closest mean (track number of changes labels)
+	# Assign each data point to closest median (track number of changes labels)
 	changes = 0
 	for i in 1:n
 		(~,y_new) = findmin(D[i,:])
@@ -49,9 +50,9 @@ while changes != 0
 		sleep(.1)
 	end
 
-	# Find mean of each cluster
+	# Find median of each cluster
 	for c in 1:k
-		W[c,:] = mean(X[y.==c,:],dims=1)
+		W[c,:] = median(X[y.==c,:],dims=1)
 	end
 
 	# Optionally visualize the algorithm steps
@@ -60,15 +61,15 @@ while changes != 0
 		sleep(.1)
 	end
 
-	error = kMeansError(X, y, W)
+	error = kMeansL1Error(X, y, W)
 
-	@printf("Running k-means, changes = %d and error = %f\n",changes, error)
+	@printf("Running k-medians, changes = %d and error = %f\n",changes, error)
 end
 
 function predict(Xhat)
 	(t,d) = size(Xhat)
 
-	D = distancesSquared(Xhat,W)
+	D = pairwise(Cityblock(), Xhat, W, dims=1)
 	D[findall(isnan.(D))] .= Inf
 
 	yhat = zeros(Int64,t)

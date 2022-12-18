@@ -23,3 +23,15 @@ trainError = mean(yhat .!= y)
 yhat = model.predict(Xtest)
 testError = mean(yhat .!= ytest)
 @printf("Test Error with %d-nearest neighbours: %.3f\n",k,testError)
+
+# Evaluate the coordinates of Vancouver
+Xvan = zeros(1, 2)
+Xvan[1, 1] = 49.2827
+Xvan[1, 2] = -123.1207
+yhat = model.predict(Xvan)
+print("Vancouver's label: ")
+print(yhat)
+print("\n")
+
+include("plot2Dclassifier.jl")
+plot2Dclassifier(X, y, model)
