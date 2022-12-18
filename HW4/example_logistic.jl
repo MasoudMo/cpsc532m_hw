@@ -31,3 +31,69 @@ trainError = mean(yhat .!= y)
 yhat = model.predict(Xtest)
 validError = mean(yhat .!= ytest)
 @show(validError)
+
+# Now let's fit a logistic loss model
+include("logReg.jl")
+model = logReg(X,y)
+
+# Count number of non-zeroes in model
+numberOfNonZero = sum(model.w .!= 0)
+@show(numberOfNonZero)
+
+# Compute training and validation error
+yhat = model.predict(X)
+trainError = mean(yhat .!= y)
+@show(trainError)
+yhat = model.predict(Xtest)
+validError = mean(yhat .!= ytest)
+@show(validError)
+
+# Now let's fit a logistic loss model with L2 regularization
+model = logRegL2(X,y,1)
+
+# Count number of non-zeroes in model
+numberOfNonZero = sum(model.w .!= 0)
+@show(numberOfNonZero)
+
+# Compute training and validation error
+yhat = model.predict(X)
+trainError = mean(yhat .!= y)
+@show(trainError)
+yhat = model.predict(Xtest)
+validError = mean(yhat .!= ytest)
+@show(validError)
+
+# Now let's fit a logistic loss model with L1 regularization
+model = logRegL1(X,y,1)
+
+# Count number of non-zeroes in model
+numberOfNonZero = sum(model.w .!= 0)
+for i in 1:101
+    if model.w[i] != 0
+        print(" ", i)
+    end
+end
+@show(numberOfNonZero)
+
+# Compute training and validation error
+yhat = model.predict(X)
+trainError = mean(yhat .!= y)
+@show(trainError)
+yhat = model.predict(Xtest)
+validError = mean(yhat .!= ytest)
+@show(validError)
+
+# Now let's fit a logistic loss model with L0 regularization
+model = logRegL0(X,y,1)
+
+# Count number of non-zeroes in model
+numberOfNonZero = sum(model.w .!= 0)
+@show(numberOfNonZero)
+
+# Compute training and validation error
+yhat = model.predict(X)
+trainError = mean(yhat .!= y)
+@show(trainError)
+yhat = model.predict(Xtest)
+validError = mean(yhat .!= ytest)
+@show(validError)

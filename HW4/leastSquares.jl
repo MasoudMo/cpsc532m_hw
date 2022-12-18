@@ -1,4 +1,5 @@
 include("misc.jl")
+using LinearAlgebra
 
 function leastSquares(X,y)
 
@@ -69,6 +70,18 @@ function leastSquaresRBF(X,y,sigma)
 	Z = rbf(X,X,sigma)
 
 	w = (Z'*Z)\(Z'*y)
+
+	predict(Xhat) = rbf(Xhat,X,sigma)*w
+
+	return LinearModel(predict,w)
+end
+
+function leastSquaresRBFL2(X,y,sigma,lambda)
+	(n,d) = size(X)
+
+	Z = rbf(X,X,sigma)
+
+	w = (Z'*Z + lambda*I)\(Z'*y)
 
 	predict(Xhat) = rbf(Xhat,X,sigma)*w
 

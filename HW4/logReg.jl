@@ -1,4 +1,5 @@
 using Printf
+using LinearAlgebra
 include("misc.jl")
 include("findMin.jl")
 
@@ -22,11 +23,58 @@ function logReg(X,y)
 	return LinearModel(predict,w)
 end
 
+function logRegL2(X,y,lambda)
+
+	(n,d) = size(X)
+
+	# Initial guess
+	w = zeros(d,1)
+
+	# Function we're going to minimize (and that computes gradient)
+	funObj(w) = logisticObjL2(w,X,y,lambda)
+
+	# Solve least squares problem
+	w = findMin(funObj,w,derivativeCheck=true)
+
+	# Make linear prediction function
+	predict(Xhat) = sign.(Xhat*w)
+
+	# Return model
+	return LinearModel(predict,w)
+end
+
+function logisticObjL2(w,X,y,lambda)
+	yXw = y.*(X*w)
+	f = sum(log.(1 .+ exp.(-yXw))) + lambda/2 * norm(w)^2
+	g = -X'*(y./(1 .+ exp.(yXw))) + lambda*w
+	return (f,g)
+end
+
 function logisticObj(w,X,y)
 	yXw = y.*(X*w)
 	f = sum(log.(1 .+ exp.(-yXw)))
 	g = -X'*(y./(1 .+ exp.(yXw)))
 	return (f,g)
+end
+
+function logRegL1(X,y,lambda)
+
+	(n,d) = size(X)
+
+	# Initial guess
+	w = zeros(d,1)
+
+	# Function we're going to minimize (and that computes gradient)
+	funObj(w) = logisticObj(w,X,y)
+
+	# Solve least squares problem
+	w = findMinL1(funObj,w,lambda)
+
+	# Make linear prediction function
+	predict(Xhat) = sign.(Xhat*w)
+
+	# Return model
+	return LinearModel(predict,w)
 end
 
 # Variant where we use forward selection for feature selection
@@ -68,7 +116,15 @@ function logRegL0(X,y,lambda)
 			Sj = [S;j]
 			Xs = X[:,Sj]
 
-			# PUT YOUR CODE HERE
+			w = zeros(length(Sj),1)
+			w = findMin(funObj,w,verbose=false)
+			(f,~) = funObj(w)
+			score = f + lambda*length(Sj)
+
+			if score < minScore
+				minScore = score # Lowest score we've found
+				minS = Sj # Best set of features we've found
+			end
 		end
 		S = minS
 	end
@@ -109,4 +165,46 @@ function logRegOnevsAll(X,y)
 	predict(Xhat) = mapslices(argmax,Xhat*W',dims=2)
 
 	return LinearModel(predict,W)
+end
+
+function softmaxClassifier(X,y)
+	(n,d) = size(X)
+	k = maximum(y)
+
+	# Initial guess
+	w = randn(d*k,1)
+
+	# Function we're going to minimize (and that computes gradient)
+	funObj(w) = softmaxObjective(w,X,y)
+
+	# Solve least squares problem
+	w = findMin(funObj,w,derivativeCheck=true)
+	w = reshape(w, (k, d))
+
+	# Make linear prediction function
+	predict(Xhat) = last.(Tuple.(findmax(Xhat*w', dims=2)[2]))
+
+	# Return model
+	return LinearModel(predict,w)
+end
+
+function softmaxObjective(w,X,y)
+	(n,d) = size(X)
+	k = maximum(y)
+
+	w = reshape(w, (k, d))
+
+	f = -sum([(X*w')[i, y[i]] for i in 1:length(y)]) + sum(log.(sum(exp.(X*w'), dims=2)))
+	g = zeros(k,d)
+
+	for c in 1:k
+		for j in 1:d
+			g[c,j] = -sum(X[y.==c, j]) + sum(X[:, j] .* exp.((X*w')[:, c]) ./ sum(exp.(X*w'), dims=2))
+		end
+	end
+
+	g = reshape(g, (d*k, 1))
+
+	return (f, g)
+
 end
