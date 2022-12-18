@@ -47,6 +47,7 @@ gv_chain2 = g_chain2[v]
 # Re-writing the objective using Flux's pre-defined layer function
 vt = reshape(v,1,3)
 model2 = Chain(Dense(W,false,tanh),Dense(vt,false,identity))
+print(size(params(Dense(W))[2]))
 loss3(x,y) = (1/2)*(model2(x)[1]-y)^2
 f_layer = loss3(X[i,:],y[i])
 g_layer = gradient(Flux.params(model2)) do
@@ -54,6 +55,26 @@ g_layer = gradient(Flux.params(model2)) do
 end
 gW_layer = g_layer[Flux.params(model2)[1]]
 gv_layer = g_layer[Flux.params(model2)[2]]
+
+# Randomly initialize the weights for W1 and W2 and v_transposed
+W1 = randn(128,d)
+W2 = randn(3, 128)
+vt = reshape(v,1,3)
+
+# Chain the two hidden-layer network
+dense_model = Chain(Dense(W1, true, relu), Dense(W2, true, relu), Dense(vt, false, identity))
+
+# Define the loss function
+lossfunc(x,y) = (1/2)*(dense_model(x)[1]-y)^2
+
+# Forward and backprop layers
+f_layer = lossfunc(X[i,:],y[i])
+g_layer = gradient(params(dense_model)) do
+	lossfunc(X[i,:],y[i])
+end
+gW1_layer = g_layer[W1]
+gW2_layer = g_layer[W2]
+gv_layer = g_layer[vt]
 
 
 maxIter = 10000

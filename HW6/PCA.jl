@@ -31,6 +31,54 @@ function expandFunc(Z,W,mu)
     return Z*W + repeat(mu,t,1)
 end
 
+function expandFunc_NMF(Z,W)
+    (t,k) = size(Z)
+    return Z*W
+end
+
+
+function PCA_gradient_NMF(X,k)
+    (n,d) = size(X)
+
+    # Initialize W and Z
+    W = randn(k,d)
+    Z = randn(n,k)
+
+    # Set negative values to 0
+    W[W.<0] .= 0
+    Z[Z.<0] .= 0
+
+    R = Z*W - X
+    f = sum(R.^2)
+    funObjZ(z) = pcaObjZ(z,X,W)
+    funObjW(w) = pcaObjW(w,X,Z)
+    for iter in 1:50
+        fOld = f
+
+        # Update Z
+        Z[:] = findMinNN(funObjZ,Z[:],verbose=false,maxIter=10)
+
+        # Update W
+        W[:] = findMinNN(funObjW,W[:],verbose=false,maxIter=10)
+
+        R = Z*W - X
+        f = (1/2)sum(R.^2)
+        @printf("Iteration %d, loss = %f\n",iter,f/length(X))
+
+        if (fOld - f)/length(X) < 1e-2
+            break
+        end
+    end
+
+
+    # We didn't enforce that W was orthogonal so we need to optimize to find Z
+    compress(Xhat) = compress_gradientDescent_NMF(Xhat,W)
+    expand(Z) = expandFunc_NMF(Z,W)
+
+    return CompressModel(compress,expand,W)
+end
+
+
 function PCA_gradient(X,k)
     (n,d) = size(X)
 
@@ -80,6 +128,17 @@ function compress_gradientDescent(Xhat,W,mu)
 
     funObj(z) = pcaObjZ(z,Xcentered,W)
     Z[:] = findMin(funObj,Z[:],verbose=false)
+    return Z
+end
+
+
+function compress_gradientDescent_NMF(Xhat,W)
+    (t,d) = size(Xhat)
+    k = size(W,1)
+    Z = zeros(t,k)
+
+    funObj(z) = pcaObjZ(z,Xhat,W)
+    Z[:] = findMinNN(funObj,Z[:],verbose=false)
     return Z
 end
 

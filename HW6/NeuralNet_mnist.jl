@@ -20,121 +20,64 @@ end
 # Compute squared error and gradient
 # for a single training example (x,y)
 # (x is assumed to be a column-vector)
-function NeuralNet_backprop(bigW,x,y,nHidden)
-	d = length(x)
-	nLayers = length(nHidden)
-
-	#### Reshape 'bigW' into vectors/matrices
-	# - This is not a really elegant way to do things
-	# if you want to be really efficient, but for the course
-	# it is nice abraction
-	W1 = reshape(bigW[1:nHidden[1]*d],nHidden[1],d)
-	ind = nHidden[1]*d
-	Wm = Array{Any}(undef,nLayers-1)
-	for layer in 2:nLayers
-		Wm[layer-1] = reshape(bigW[ind+1:ind+nHidden[layer]*nHidden[layer-1]],nHidden[layer],nHidden[layer-1])
-		ind += nHidden[layer]*nHidden[layer-1]
-	end
-	v = bigW[ind+1:end]
-
-	#### Define activation function and its derivative
-	h(z) = tanh.(z)
-	dh(z) = (sech.(z)).^2
-
-	#### Forward propagation
-	z = Array{Any}(undef,nLayers)
-	z[1] = W1*x
-	for layer in 2:nLayers
-		z[layer] = Wm[layer-1]*h(z[layer-1])
-	end
-	yhat = v'*h(z[end])
-
-	r = yhat-y
-	f = (1/2)r^2
-
-	#### Backpropagation (the below could be replaced by AD)
-	dr = r
-	err = dr
-
-	# Output weights
-	Gout = err*h(z[end])
-
-	Gm = Array{Any}(undef,nLayers-1)
-	if nLayers > 1
-		# Last Layer of Hidden Weights
-		backprop = err*(dh(z[end]).*v)
-		Gm[end] = backprop*h(z[end-1])'
-
-		# Other Hidden Layers
-		for layer in nLayers-2:-1:1
-			backprop = (Wm[layer+1]'*backprop).*dh(z[layer+1])
-			Gm[layer] = backprop*h(z[layer])'
-		end
-
-		# Input Weights
-		backprop = (Wm[1]'*backprop).*dh(z[1])
-		G1 = backprop*x'
-	else
-		# Input weights
-		G1 = err*(dh(z[1]).*v)*x'
-	end
-
-	#### Put gradients into vector
-	g = zeros(size(bigW))
-	g[1:nHidden[1]*d] = G1
-	ind = nHidden[1]*d
-	for layer in 2:nLayers
-		g[ind+1:ind+nHidden[layer]*nHidden[layer-1]] = Gm[layer-1]
-		ind += nHidden[layer]*nHidden[layer-1]
-	end
-	g[ind+1:end] = Gout
-
-	return (f,g)
-end
-
-
-function NeuralNet_backprop_mod(bigW,x,y,nHidden)
-
-	# Need size of x since it's a mini batch now
+function NeuralNet_backprop(bigW,x,y,nHidden; initialize=false)
 	(n, d) = size(x)
+
 	nLayers = length(nHidden)
+
+	if initialize
+		print("Initializing weights. \n")
+	end
 
 	#### Reshape 'bigW' into vectors/matrices
 	# - This is not a really elegant way to do things
 	# if you want to be really efficient, but for the course
 	# it is nice abraction
 	W1 = reshape(bigW[1:nHidden[1]*d],nHidden[1],d)
+
+	if initialize
+		W1 .*= sqrt(2.0/size(W1)[2])
+	end
+	
 	ind = nHidden[1]*d
 	Wm = Array{Any}(undef,nLayers-1)
 	for layer in 2:nLayers
 		Wm[layer-1] = reshape(bigW[ind+1:ind+nHidden[layer]*nHidden[layer-1]],nHidden[layer],nHidden[layer-1])
+
+		if initialize
+			Wm[layer-1] .*= sqrt(2.0/size(Wm[layer-1])[2])
+		end
+		
 		ind += nHidden[layer]*nHidden[layer-1]
 	end
 	v = bigW[ind+1:end]
 
+	if initialize
+		v .*= sqrt(2.0/size(v)[1])
+	end
+
 	#### Define activation function and its derivative
 	h(z) = tanh.(z)
 	dh(z) = (sech.(z)).^2
+    # h(z) = max.(0, z)
+    # dh(z) = ifelse.(z.>0, 1, 0)
 
 	#### Forward propagation
 	z = Array{Any}(undef,nLayers)
-
-	# Need to transpose x since it's a mini batch now
 	z[1] = W1*x'
 	for layer in 2:nLayers
 		z[layer] = Wm[layer-1]*h(z[layer-1])
 	end
 	yhat = v'*h(z[end])
+    yhat = 1 ./ (1 .+ exp.(-1 .* yhat))
+	yhat = yhat'
 
-	r = yhat'-y
-
-	# r is not a single value anymore
-	f = (1/n)* sum(r.^2)
+	f = -1/n * sum(y .* log.(yhat) + (1 .- y) .* log.(1 .- yhat))
 
 	#### Backpropagation (the below could be replaced by AD)
-	dr = 2/n .* r
-	err = dr
-
+	# dr = 1/n * (yhat .- y) ./ (yhat .* (1 .- yhat))
+	err = yhat .- y
+	
 	# Output weights
 	Gout = h(z[end]) * err
 
@@ -171,7 +114,6 @@ function NeuralNet_backprop_mod(bigW,x,y,nHidden)
 	return (f,g)
 end
 
-
 # Computes predictions for a set of examples X
 function NeuralNet_predict(bigW,Xhat,nHidden)
 	(t,d) = size(Xhat)
@@ -187,9 +129,11 @@ function NeuralNet_predict(bigW,Xhat,nHidden)
 	end
 	v = bigW[ind+1:end]
 
-	#### Define activation function and its derivative
+	# #### Define activation function and its derivative
 	h(z) = tanh.(z)
 	dh(z) = (sech.(z)).^2
+    # h(z) = max.(0, z)
+    # dh(z) = ifelse.(z.>0, 1, 0)
 
 	#### Forward propagation on each example to make predictions
 	yhat = zeros(t,1)
@@ -202,6 +146,6 @@ function NeuralNet_predict(bigW,Xhat,nHidden)
 		end
 		yhat[i] = v'*h(z[end])
 	end
-	return yhat
+	return 1 ./ (1 .+ exp.(-1 .* yhat))
 end
 
